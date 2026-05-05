@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model QuantityBundle {
+  id                          String   @id @default(cuid())
+  shop                        String
+  name                        String
+  isActive                    Boolean  @default(true)
+  applyTo                     String   @default("ALL")
+  productId                   String?
+  widgetTitle                 String   @default("Choose a bundle & save!")
+  primaryColor                String   @default("#000000")
+  combinesWithProductDiscounts Boolean  @default(false)
+  discountGid                 String?
+  tiers                       Tier[]
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  @@index([shop])
+}
+
+model Tier {
+  id            String         @id @default(cuid())
+  bundleId      String
+  bundle        QuantityBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  quantity      Int
+  label         String
+  badge         String?
+  discountType  String
+  discountValue Float
+  isPopular     Boolean        @default(false)
+  position      Int            @default(0)
+}
