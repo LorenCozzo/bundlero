@@ -1,0 +1,25 @@
+query RunInput {
+  cart {
+    lines {
+      id
+      quantity
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          product {
+            id
+            metafield(namespace: "quantity_breaks", key: "config") {
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+  discountNode {
+    metafield(namespace: "quantity_breaks", key: "config") {
+      value
+    }
+  }
+}

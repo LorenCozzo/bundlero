@@ -19,12 +19,94 @@ const shopify = shopifyApp({
   future: {
     expiringOfflineAccessTokens: true,
   },
+  hooks: {
+    afterAuth: async ({ admin }) => {
+      await ensureAutomaticDiscount(admin);
+    },
+  },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function ensureAutomaticDiscount(admin: any) {
+  try {
+    // Buscar si ya existe un discount con nuestra function
+    const fnRes = await admin.graphql(`
+      #graphql
+      query GetFunctions {
+        shopifyFunctions(first: 25) {
+          nodes { id apiType title }
+        }
+      }
+    `);
+    const fnData = await fnRes.json();
+    console.log("[bundlero] shopifyFunctions:", JSON.stringify(fnData?.data?.shopifyFunctions?.nodes));
+    const fn = fnData?.data?.shopifyFunctions?.nodes?.find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (n: any) => n.apiType === "product_discounts" && n.title === "quantity-break-function"
+    );
+    if (!fn) {
+      console.log("[bundlero] Function not found — deploy the app first");
+      return { error: "function_not_found" };
+    }
+
+    // Verificar si ya existe un discount para esta función
+    const existingRes = await admin.graphql(`
+      #graphql
+      query GetDiscounts {
+        discountNodes(first: 25, query: "title:Bundlero Quantity Breaks") {
+          nodes {
+            id
+            discount {
+              __typename
+            }
+          }
+        }
+      }
+    `);
+    const existingData = await existingRes.json();
+    const alreadyExists = (existingData?.data?.discountNodes?.nodes?.length ?? 0) > 0;
+    if (alreadyExists) {
+      console.log("[bundlero] Automatic discount already exists");
+      return { ok: true };
+    }
+
+    // Crear el discount automático
+    const createRes = await admin.graphql(`
+      #graphql
+      mutation CreateDiscount($discount: DiscountAutomaticAppInput!) {
+        discountAutomaticAppCreate(automaticAppDiscount: $discount) {
+          automaticAppDiscount { discountId }
+          userErrors { field message }
+        }
+      }
+    `, {
+      variables: {
+        discount: {
+          title: "Bundlero Quantity Breaks",
+          functionId: fn.id,
+          startsAt: new Date().toISOString(),
+          combinesWith: {
+            orderDiscounts: true,
+            shippingDiscounts: true,
+            productDiscounts: false,
+          },
+        },
+      },
+    });
+    const createData = await createRes.json();
+    console.log("[bundlero] discountAutomaticAppCreate:", JSON.stringify(createData?.data?.discountAutomaticAppCreate));
+    return createData?.data?.discountAutomaticAppCreate;
+  } catch (e) {
+    console.error("[bundlero] ensureAutomaticDiscount error:", e);
+    throw e;
+  }
+}
+
 export default shopify;
+export { ensureAutomaticDiscount };
 export const apiVersion = ApiVersion.October25;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
