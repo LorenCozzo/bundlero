@@ -35,13 +35,35 @@ model QuantityBundle {
   isActive                    Boolean  @default(true)
   applyTo                     String   @default("ALL")
   productId                   String?
-  widgetTitle                 String   @default("Choose a bundle & save!")
-  primaryColor                String   @default("#000000")
+  widgetTitle                 String   @default("Elige un paquete y ahorra")
+  primaryColor                String   @default("#16A34A")
   combinesWithProductDiscounts Boolean  @default(false)
   discountGid                 String?
-  tiers                       Tier[]
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
+
+  // Configuración extra (UX rediseño)
+  discountName       String?
+  styleLayout        Int     @default(0)
+  cornerRadius       Int     @default(16)
+  spacing            Int     @default(8)
+  cardBg             String  @default("#FFFFFF")
+  selectedBg         String  @default("#F0FFF4")
+  borderColor        String  @default("#16A34A")
+  titleColor         String  @default("#111827")
+  subtitleColor      String  @default("#6B7280")
+  priceColor         String  @default("#111827")
+  originalPriceColor String  @default("#9CA3AF")
+  labelBg            String  @default("#BBF7D0")
+  labelTextColor     String  @default("#111827")
+  badgeBg            String  @default("#111827")
+  badgeTextColor     String  @default("#FFFFFF")
+  fontFamily         String  @default("inherit")
+  timerEnabled       Boolean @default(false)
+  timerHours         Int     @default(9)
+  timerText          String  @default("¡Date prisa! Oferta expira en")
+
+  tiers     Tier[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([shop])
 }
@@ -57,4 +79,9 @@ model Tier {
   discountValue Float
   isPopular     Boolean        @default(false)
   position      Int            @default(0)
+
+  // Campos nuevos UX
+  subtitle  String?
+  etiqueta  String?
+  isDefault Boolean @default(false)
 }

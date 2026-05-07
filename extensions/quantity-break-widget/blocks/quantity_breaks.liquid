@@ -16,18 +16,30 @@
     var productId = container.dataset.productId;
     if (!shop) return;
 
-    function escHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    // Precio unitario del producto desde Shopify globals
+    function getUnitPrice() {
+      try {
+        var p = window.ShopifyAnalytics && window.ShopifyAnalytics.meta &&
+                window.ShopifyAnalytics.meta.product;
+        if (p && p.price) return p.price / 100;
+      } catch(e) {}
+      try {
+        var meta = document.querySelector('meta[property="og:price:amount"]');
+        if (meta) return parseFloat(meta.getAttribute("content"));
+      } catch(e) {}
+      return null;
+    }
+
+    function fmtPrice(n) {
+      return "$" + Math.round(n).toLocaleString("es-AR");
     }
 
     function setQty(qty) {
       var inputs = document.querySelectorAll("input[name='quantity'], input[id*='quantity'], input[id*='Quantity']");
       inputs.forEach(function(input) {
         try {
-          var setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
-          if (setter && setter.set) setter.set.call(input, String(qty));
+          var s = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+          if (s && s.set) s.set.call(input, String(qty));
           input.value = String(qty);
           input.dispatchEvent(new Event("input", { bubbles: true }));
           input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -37,77 +49,139 @@
 
     function render(bundle) {
       var tiers = bundle.tiers;
-      var primaryColor = bundle.primaryColor || "#000000";
-      var title = bundle.widgetTitle || "Choose a bundle & save!";
       if (!tiers || tiers.length === 0) return;
 
-      var wrapper = document.createElement("div");
-      wrapper.id = "qb-widget";
+      var r           = bundle.cornerRadius + "px";
+      var sp          = bundle.spacing + "px";
+      var unitPrice   = getUnitPrice();
+      var defaultIdx  = tiers.findIndex(function(t) { return t.isDefault; });
+      if (defaultIdx < 0) defaultIdx = 0;
 
+      // ——— Estilos ———
       var style = document.createElement("style");
       style.textContent = [
-        "#qb-widget{font-family:inherit;margin-bottom:16px}",
-        "#qb-widget .qb-title{font-weight:600;font-size:14px;margin:0 0 10px}",
-        "#qb-widget .qb-tier{display:flex;align-items:center;gap:10px;border:2px solid #e1e3e5;border-radius:6px;padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}",
-        "#qb-widget .qb-tier.qb-selected{border-color:" + primaryColor + ";background:" + primaryColor + "18}",
-        "#qb-widget .qb-tier input[type=radio]{margin:0;cursor:pointer}",
-        "#qb-widget .qb-qty{font-weight:700;font-size:14px;min-width:28px}",
-        "#qb-widget .qb-label{flex:1;font-size:14px}",
-        "#qb-widget .qb-badge{background:" + primaryColor + ";color:#fff;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700}",
-        "#qb-widget .qb-popular{font-size:11px;font-weight:700;color:" + primaryColor + "}",
-        "#qb-widget .qb-saving{font-size:12px;font-weight:600;color:#2a9d8f}",
+        "#qb-widget { font-family: " + (bundle.fontFamily !== "inherit" ? bundle.fontFamily : "inherit") + "; margin-bottom: 16px; width: 100%; box-sizing: border-box; }",
+        "#qb-widget .qb-timer { background: #FEF3C7; border-radius: " + r + "; padding: 8px 14px; margin-bottom: " + sp + "; text-align: center; font-weight: 700; font-size: 13px; }",
+        "#qb-widget .qb-title { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; margin: 0 0 " + sp + "; color: " + bundle.titleColor + "; letter-spacing: 0.05em; }",
+        "#qb-widget .qb-title::before, #qb-widget .qb-title::after { content: ''; flex: 1; border-bottom: 1px solid #E5E7EB; }",
+        "#qb-widget .qb-tier { display: flex; align-items: center; gap: 14px; border: 2px solid #E5E7EB; border-radius: " + r + "; padding: 12px 20px; margin-bottom: " + sp + "; cursor: pointer; background: " + bundle.cardBg + "; transition: border-color .15s, background .15s; overflow: hidden; }",
+        "#qb-widget .qb-tier.qb-sel { border-color: " + bundle.borderColor + "; background: " + bundle.selectedBg + "; }",
+        "#qb-widget .qb-tier input[type=radio] { margin: 0; cursor: pointer; accent-color: " + bundle.borderColor + "; flex-shrink: 0; }",
+        "#qb-widget .qb-info { flex: 1; line-height: 1.2; min-width: 0; }",
+        "#qb-widget .qb-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }",
+        "#qb-widget .qb-lbl { font-weight: 700; font-size: 16px; color: " + bundle.titleColor + "; line-height: 1.2; white-space: nowrap; flex-shrink: 0; }",
+        "#qb-widget .qb-sub { font-size: 12px; color: " + bundle.subtitleColor + "; margin-top: 0; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
+        "#qb-widget .qb-etiq { background: " + bundle.labelBg + "; color: " + bundle.labelTextColor + "; border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }",
+        "#qb-widget .qb-prices { text-align: right; }",
+        "#qb-widget .qb-price { font-weight: 700; font-size: 17px; color: " + bundle.priceColor + "; line-height: 1.2; }",
+        "#qb-widget .qb-orig { font-size: 12px; color: " + bundle.originalPriceColor + "; text-decoration: line-through; }",
+        "#qb-widget .qb-badge { position: absolute; top: -14px; right: 12px; background: " + bundle.badgeBg + "; color: " + bundle.badgeTextColor + "; border-radius: 20px; padding: 3px 12px; font-size: 12px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1; letter-spacing: 0.01em; }",
       ].join("\n");
+
+      // ——— Wrapper ———
+      var wrapper = document.createElement("div");
+      wrapper.id = "qb-widget";
       wrapper.appendChild(style);
 
+      // Timer
+      if (bundle.timerEnabled) {
+        var timerEl = document.createElement("div");
+        timerEl.className = "qb-timer";
+        var totalSecs = bundle.timerHours * 3600;
+        function tickTimer() {
+          if (totalSecs <= 0) return;
+          var h = Math.floor(totalSecs / 3600).toString().padStart(2, "0");
+          var m = Math.floor((totalSecs % 3600) / 60).toString().padStart(2, "0");
+          var s = (totalSecs % 60).toString().padStart(2, "0");
+          timerEl.textContent = "🚨 " + bundle.timerText + " " + h + ":" + m + ":" + s;
+          totalSecs--;
+        }
+        tickTimer();
+        setInterval(tickTimer, 1000);
+        wrapper.appendChild(timerEl);
+      }
+
+      // Título
       var titleEl = document.createElement("p");
       titleEl.className = "qb-title";
-      titleEl.textContent = title;
+      titleEl.textContent = bundle.widgetTitle;
       wrapper.appendChild(titleEl);
 
+      // Tiers
       tiers.forEach(function(tier, i) {
-        var row = document.createElement("label");
-        row.className = "qb-tier" + (i === 0 ? " qb-selected" : "");
+        var row = document.createElement("div");
+        row.className = "qb-tier" + (i === defaultIdx ? " qb-sel" : "");
         row.dataset.qty = tier.quantity;
 
         var radio = document.createElement("input");
-        radio.type = "radio"; radio.name = "qb-tier"; radio.value = i; radio.checked = i === 0;
+        radio.type = "radio"; radio.name = "qb-tier"; radio.value = i;
+        radio.checked = i === defaultIdx;
+        radio.style.flexShrink = "0";
+        radio.style.width = "18px";
+        radio.style.height = "18px";
 
-        var qtySpan = document.createElement("span");
-        qtySpan.className = "qb-qty"; qtySpan.textContent = tier.quantity + "x";
+        // Info izquierda (título + subtitle alineados)
+        var info = document.createElement("div");
+        info.className = "qb-info";
+        info.style.flex = "1";
 
-        var labelSpan = document.createElement("span");
-        labelSpan.className = "qb-label";
-        labelSpan.textContent = tier.label || ("Buy " + tier.quantity);
+        var topRow = document.createElement("div");
+        topRow.className = "qb-row";
+        var lblEl = document.createElement("span");
+        lblEl.className = "qb-lbl";
+        lblEl.textContent = tier.label || ("Llevá " + tier.quantity);
+        topRow.appendChild(lblEl);
+        if (tier.etiqueta) {
+          var etiq = document.createElement("span");
+          etiq.className = "qb-etiq";
+          etiq.textContent = tier.etiqueta;
+          topRow.appendChild(etiq);
+        }
+        info.appendChild(topRow);
 
-        row.appendChild(radio); row.appendChild(qtySpan); row.appendChild(labelSpan);
+        if (tier.subtitle) {
+          var sub = document.createElement("div");
+          sub.className = "qb-sub";
+          sub.textContent = tier.subtitle;
+          info.appendChild(sub);
+        }
+
+        // Precios derecha
+        var prices = document.createElement("div");
+        prices.className = "qb-prices";
+        var priceEl = document.createElement("div");
+        priceEl.className = "qb-price";
+        priceEl.textContent = fmtPrice(tier.discountValue);
+        prices.appendChild(priceEl);
+
+        if (unitPrice !== null) {
+          var origTotal = unitPrice * tier.quantity;
+          if (origTotal > tier.discountValue) {
+            var origEl = document.createElement("div");
+            origEl.className = "qb-orig";
+            origEl.textContent = fmtPrice(origTotal);
+            prices.appendChild(origEl);
+          }
+        }
+
+        row.appendChild(radio);
+        row.appendChild(info);
+        row.appendChild(prices);
+
+        var rowWrap = document.createElement("div");
+        rowWrap.className = "qb-wrap";
+        rowWrap.style.position = "relative";
+        rowWrap.style.marginTop = tier.badge ? "10px" : "0";
 
         if (tier.badge) {
           var badge = document.createElement("span");
-          badge.className = "qb-badge"; badge.textContent = tier.badge;
-          row.appendChild(badge);
+          badge.className = "qb-badge";
+          badge.textContent = tier.badge;
+          rowWrap.appendChild(badge);
         }
-        if (tier.isPopular) {
-          var pop = document.createElement("span");
-          pop.className = "qb-popular"; pop.textContent = "★ Popular";
-          row.appendChild(pop);
-        }
-        if (tier.discountValue > 0) {
-          var saving = document.createElement("span");
-          saving.className = "qb-saving";
-          saving.textContent = tier.discountType === "PERCENTAGE"
-            ? "Save " + tier.discountValue + "%" : "-$" + tier.discountValue;
-          row.appendChild(saving);
-        }
-        wrapper.appendChild(row);
-      });
 
-      // Seleccionar tier
-      wrapper.addEventListener("change", function(e) {
-        var radio = e.target;
-        if (!radio || radio.name !== "qb-tier") return;
-        wrapper.querySelectorAll(".qb-tier").forEach(function(el) { el.classList.remove("qb-selected"); });
-        radio.closest(".qb-tier").classList.add("qb-selected");
-        setQty(parseInt(radio.closest(".qb-tier").dataset.qty, 10));
+        rowWrap.appendChild(row);
+        wrapper.appendChild(rowWrap);
       });
 
       // Insertar antes del Add to Cart
@@ -116,29 +190,52 @@
       else { container.appendChild(wrapper); }
 
       // Cantidad inicial
-      setQty(tiers[0].quantity);
+      setQty(tiers[defaultIdx] ? tiers[defaultIdx].quantity : tiers[0].quantity);
 
-      // Interceptar fetch para forzar la cantidad correcta
-      var _origFetch = window.fetch;
+      // Cambio de tier
+      wrapper.addEventListener("change", function(e) {
+        var el = e.target;
+        if (!el || el.name !== "qb-tier") return;
+        wrapper.querySelectorAll(".qb-tier").forEach(function(r) { r.classList.remove("qb-sel"); });
+        var tierRow = el.closest(".qb-tier");
+        tierRow.classList.add("qb-sel");
+        setQty(parseInt(tierRow.dataset.qty, 10));
+      });
+
+      // También interceptar clicks en el wrapper para seleccionar el tier
+      wrapper.addEventListener("click", function(e) {
+        var wrap = e.target.closest(".qb-wrap");
+        if (!wrap) return;
+        var tierRow = wrap.querySelector(".qb-tier");
+        if (!tierRow) return;
+        var radio = tierRow.querySelector("input[type=radio]");
+        if (radio && !radio.checked) {
+          radio.checked = true;
+          radio.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+
+      // Interceptar fetch para garantizar cantidad correcta
+      var _orig = window.fetch;
       window.fetch = function(url, opts) {
-        var urlStr = typeof url === "string" ? url : "";
-        if (urlStr.indexOf("/cart/add") !== -1) {
-          var selected = wrapper.querySelector(".qb-tier.qb-selected");
-          var qty = selected ? parseInt(selected.dataset.qty, 10) : null;
+        var u = typeof url === "string" ? url : "";
+        if (u.indexOf("/cart/add") !== -1) {
+          var sel = wrapper.querySelector(".qb-tier.qb-sel");
+          var qty = sel ? parseInt(sel.dataset.qty, 10) : null;
           if (qty && opts && opts.body) {
             if (opts.body instanceof FormData) { opts.body.set("quantity", String(qty)); }
             else if (opts.body instanceof URLSearchParams) { opts.body.set("quantity", String(qty)); }
             else if (typeof opts.body === "string") { opts.body = opts.body.replace(/quantity=\d+/, "quantity=" + qty); }
           }
         }
-        return _origFetch.apply(this, arguments);
+        return _orig.apply(this, arguments);
       };
     }
 
     function init() {
       fetch("/apps/bundlero?shop=" + encodeURIComponent(shop) + (productId ? "&productId=" + encodeURIComponent(productId) : ""))
-        .then(function(res) { return res.json(); })
-        .then(function(data) { if (data && data.bundle) render(data.bundle); })
+        .then(function(r) { return r.json(); })
+        .then(function(d) { if (d && d.bundle) render(d.bundle); })
         .catch(function() {});
     }
 

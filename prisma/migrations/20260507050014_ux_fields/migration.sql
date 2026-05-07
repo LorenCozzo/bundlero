@@ -1,0 +1,27 @@
+-- AlterTable
+ALTER TABLE "QuantityBundle" ADD COLUMN     "badgeBg" TEXT NOT NULL DEFAULT '#111827',
+ADD COLUMN     "badgeTextColor" TEXT NOT NULL DEFAULT '#FFFFFF',
+ADD COLUMN     "borderColor" TEXT NOT NULL DEFAULT '#16A34A',
+ADD COLUMN     "cardBg" TEXT NOT NULL DEFAULT '#FFFFFF',
+ADD COLUMN     "cornerRadius" INTEGER NOT NULL DEFAULT 16,
+ADD COLUMN     "discountName" TEXT,
+ADD COLUMN     "fontFamily" TEXT NOT NULL DEFAULT 'inherit',
+ADD COLUMN     "labelBg" TEXT NOT NULL DEFAULT '#BBF7D0',
+ADD COLUMN     "labelTextColor" TEXT NOT NULL DEFAULT '#111827',
+ADD COLUMN     "originalPriceColor" TEXT NOT NULL DEFAULT '#9CA3AF',
+ADD COLUMN     "priceColor" TEXT NOT NULL DEFAULT '#111827',
+ADD COLUMN     "selectedBg" TEXT NOT NULL DEFAULT '#F0FFF4',
+ADD COLUMN     "spacing" INTEGER NOT NULL DEFAULT 8,
+ADD COLUMN     "styleLayout" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "subtitleColor" TEXT NOT NULL DEFAULT '#6B7280',
+ADD COLUMN     "timerEnabled" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "timerHours" INTEGER NOT NULL DEFAULT 9,
+ADD COLUMN     "timerText" TEXT NOT NULL DEFAULT '¡Date prisa! Oferta expira en',
+ADD COLUMN     "titleColor" TEXT NOT NULL DEFAULT '#111827',
+ALTER COLUMN "widgetTitle" SET DEFAULT 'Elige un paquete y ahorra',
+ALTER COLUMN "primaryColor" SET DEFAULT '#16A34A';
+
+-- AlterTable
+ALTER TABLE "Tier" ADD COLUMN     "etiqueta" TEXT,
+ADD COLUMN     "isDefault" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "subtitle" TEXT;

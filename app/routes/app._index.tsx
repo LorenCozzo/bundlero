@@ -10,17 +10,13 @@ import db from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
-  await ensureAutomaticDiscount(admin).catch((e) => console.error("[bundlero] loader discount error:", e));
+  await ensureAutomaticDiscount(admin).catch((e) =>
+    console.error("[bundlero] loader discount error:", e),
+  );
   const bundles = await db.quantityBundle.findMany({
     where: { shop: session.shop },
     orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      isActive: true,
-      applyTo: true,
-      createdAt: true,
-    },
+    select: { id: true, name: true, isActive: true, applyTo: true, createdAt: true },
   });
   return { bundles, shop: session.shop };
 };
@@ -33,7 +29,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "create") {
     const bundle = await db.quantityBundle.create({
-      data: { shop: session.shop, name: "New bundle" },
+      data: {
+        shop: session.shop,
+        name: "Nueva oferta",
+        tiers: {
+          create: [
+            { quantity: 1, label: "LLEVA 1",   discountType: "FIXED", discountValue: 10000, isDefault: true,  position: 0 },
+            { quantity: 2, label: "LLEVA 2X1", discountType: "FIXED", discountValue: 20000, badge: "Más elegido", etiqueta: "ENVÍO GRATIS", position: 1 },
+            { quantity: 3, label: "LLEVA 3",   discountType: "FIXED", discountValue: 30000, badge: "Máximo ahorro", etiqueta: "ENVÍO GRATIS", position: 2 },
+          ],
+        },
+      },
     });
     return redirect(`/app/bundles/${bundle.id}`);
   }
@@ -44,10 +50,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       select: { isActive: true },
     });
     if (bundle) {
-      await db.quantityBundle.update({
-        where: { id },
-        data: { isActive: !bundle.isActive },
-      });
+      await db.quantityBundle.update({ where: { id }, data: { isActive: !bundle.isActive } });
     }
     return null;
   }
@@ -66,24 +69,20 @@ function BundleRow({ bundle }: { bundle: Bundle }) {
   const toggleFetcher = useFetcher();
   const deleteFetcher = useFetcher();
 
-  const isActive =
-    toggleFetcher.state !== "idle" ? !bundle.isActive : bundle.isActive;
-
+  const isActive = toggleFetcher.state !== "idle" ? !bundle.isActive : bundle.isActive;
   if (deleteFetcher.state !== "idle") return null;
 
   return (
     <s-box padding="base" border-width="base" border-radius="base">
       <s-stack direction="inline" gap="base">
         <s-stack direction="block" gap="base">
-          <s-link href={`/app/bundles/${bundle.id}`}>
-            {bundle.name}
-          </s-link>
+          <s-link href={`/app/bundles/${bundle.id}`}>{bundle.name}</s-link>
           <s-stack direction="inline" gap="base">
             <s-badge tone={bundle.applyTo === "ALL" ? "info" : "neutral"}>
-              {bundle.applyTo === "ALL" ? "All products" : "Specific product"}
+              {bundle.applyTo === "ALL" ? "Todos los productos" : "Producto específico"}
             </s-badge>
             <s-badge tone={isActive ? "success" : "neutral"}>
-              {isActive ? "Active" : "Inactive"}
+              {isActive ? "Activo" : "Inactivo"}
             </s-badge>
           </s-stack>
         </s-stack>
@@ -93,32 +92,20 @@ function BundleRow({ bundle }: { bundle: Bundle }) {
             variant="secondary"
             onClick={() => { window.location.href = `/app/bundles/${bundle.id}`; }}
           >
-            Edit
+            Editar
           </s-button>
-
           <s-button
             variant="secondary"
-            onClick={() =>
-              toggleFetcher.submit(
-                { _action: "toggle", id: bundle.id },
-                { method: "post" },
-              )
-            }
+            onClick={() => toggleFetcher.submit({ _action: "toggle", id: bundle.id }, { method: "post" })}
           >
-            {isActive ? "Deactivate" : "Activate"}
+            {isActive ? "Desactivar" : "Activar"}
           </s-button>
-
           <s-button
             variant="secondary"
             tone="critical"
-            onClick={() =>
-              deleteFetcher.submit(
-                { _action: "delete", id: bundle.id },
-                { method: "post" },
-              )
-            }
+            onClick={() => deleteFetcher.submit({ _action: "delete", id: bundle.id }, { method: "post" })}
           >
-            Delete
+            Eliminar
           </s-button>
         </s-stack>
       </s-stack>
@@ -136,36 +123,41 @@ export default function BundleList() {
   const themeEditorUrl = `https://${shop}/admin/themes/current/editor?context=apps`;
 
   return (
-    <s-page heading="Bundles">
-      <s-button
-        slot="primary-action"
-        variant="primary"
-        onClick={handleCreate}
-        {...(createFetcher.state !== "idle" ? { loading: true } : {})}
-      >
-        Create bundle
-      </s-button>
+    <s-page heading="Ofertas">
+      {bundles.length > 0 && (
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          onClick={handleCreate}
+          {...(createFetcher.state !== "idle" ? { loading: true } : {})}
+        >
+          Crear oferta
+        </s-button>
+      )}
 
-      <s-section heading="Setup">
+      <s-section heading="Configuración">
         <s-stack direction="block" gap="base">
           <s-text>
-            Enable the Quantity Breaks widget in your theme to show offers on product pages.
+            Activá el widget en tu tema para que aparezca en las páginas de producto.
           </s-text>
-          <s-button
-            variant="secondary"
-            onClick={() => window.open(themeEditorUrl, "_blank")}
-          >
-            Enable widget in theme →
+          <s-button variant="secondary" onClick={() => window.open(themeEditorUrl, "_blank")}>
+            Activar widget en el tema →
           </s-button>
         </s-stack>
       </s-section>
 
-      <s-section heading="Your bundles">
+      <s-section heading="Tus ofertas">
         {bundles.length === 0 ? (
           <s-stack direction="block" gap="base">
-            <s-text>No bundles yet. Create your first one to get started.</s-text>
-            <s-button variant="primary" onClick={handleCreate}>
-              Create bundle
+            <s-text>
+              Todavía no tenés ofertas. Creá tu primera oferta de quantity breaks para empezar a vender más.
+            </s-text>
+            <s-button
+              variant="primary"
+              onClick={handleCreate}
+              {...(createFetcher.state !== "idle" ? { loading: true } : {})}
+            >
+              Crear mi primera oferta
             </s-button>
           </s-stack>
         ) : (

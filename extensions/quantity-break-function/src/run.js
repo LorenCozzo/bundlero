@@ -11,7 +11,6 @@ import { DiscountApplicationStrategy } from "../generated/api";
  * @returns {FunctionRunResult}
  */
 export function run(input) {
-  // Config del discount node (bundle applyTo = "ALL")
   let allTiers = null;
   const discountNodeValue = input?.discountNode?.metafield?.value;
   if (discountNodeValue) {
@@ -23,35 +22,37 @@ export function run(input) {
   for (const line of input.cart.lines) {
     if (line.merchandise.__typename !== "ProductVariant") continue;
 
-    // Config del metafield del producto (bundle applyTo = "PRODUCT"), tiene prioridad
     let tiers = null;
     const productValue = line.merchandise.product?.metafield?.value;
     if (productValue) {
       try { tiers = JSON.parse(productValue); } catch {}
     }
-
-    // Fallback al config del discount node (ALL)
     if (!tiers && allTiers) tiers = allTiers;
     if (!tiers || !Array.isArray(tiers) || tiers.length === 0) continue;
 
-    // Tier de mayor cantidad que no supere la cantidad del carrito
     const match = tiers
       .filter((t) => line.quantity >= t.quantity)
       .sort((a, b) => b.quantity - a.quantity)[0];
 
-    if (!match || match.discountValue <= 0) continue;
+    if (!match) continue;
 
     if (match.discountType === "PERCENTAGE") {
+      if (match.discountValue <= 0) continue;
       discounts.push({
         targets: [{ productVariant: { id: line.merchandise.id } }],
         value: { percentage: { value: String(match.discountValue) } },
       });
     } else {
+      // FIXED = precio total del tier — calculamos el descuento contra el precio original
+      const unitPrice = parseFloat(line.cost.amountPerQuantity.amount);
+      const originalTotal = unitPrice * line.quantity;
+      const discount = originalTotal - match.discountValue;
+      if (discount <= 0) continue;
       discounts.push({
         targets: [{ productVariant: { id: line.merchandise.id } }],
         value: {
           fixedAmount: {
-            amount: String(match.discountValue),
+            amount: String(discount.toFixed(2)),
             appliesToEachItem: false,
           },
         },

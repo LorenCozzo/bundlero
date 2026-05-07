@@ -16,16 +16,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return Response.json({ bundle: null }, { status: 200, headers: corsHeaders });
   }
 
-  // Buscar bundle: primero específico por producto, fallback a ALL
   let bundle = null;
-
   if (productId) {
     bundle = await db.quantityBundle.findFirst({
       where: { shop, applyTo: "PRODUCT", productId, isActive: true },
       include: { tiers: { orderBy: { position: "asc" } } },
     });
   }
-
   if (!bundle) {
     bundle = await db.quantityBundle.findFirst({
       where: { shop, applyTo: "ALL", isActive: true },
@@ -40,16 +37,33 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return Response.json(
     {
       bundle: {
-        id: bundle.id,
-        widgetTitle: bundle.widgetTitle,
-        primaryColor: bundle.primaryColor,
+        widgetTitle:        bundle.widgetTitle,
+        cornerRadius:       bundle.cornerRadius,
+        spacing:            bundle.spacing,
+        cardBg:             bundle.cardBg,
+        selectedBg:         bundle.selectedBg,
+        borderColor:        bundle.borderColor,
+        titleColor:         bundle.titleColor,
+        subtitleColor:      bundle.subtitleColor,
+        priceColor:         bundle.priceColor,
+        originalPriceColor: bundle.originalPriceColor,
+        labelBg:            bundle.labelBg,
+        labelTextColor:     bundle.labelTextColor,
+        badgeBg:            bundle.badgeBg,
+        badgeTextColor:     bundle.badgeTextColor,
+        fontFamily:         bundle.fontFamily,
+        timerEnabled:       bundle.timerEnabled,
+        timerHours:         bundle.timerHours,
+        timerText:          bundle.timerText,
         tiers: bundle.tiers.map((t) => ({
-          quantity: t.quantity,
-          label: t.label,
-          badge: t.badge,
+          quantity:     t.quantity,
+          label:        t.label,
+          subtitle:     t.subtitle,
+          badge:        t.badge,
+          etiqueta:     t.etiqueta,
           discountType: t.discountType,
           discountValue: t.discountValue,
-          isPopular: t.isPopular,
+          isDefault:    t.isDefault,
         })),
       },
     },
@@ -57,13 +71,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   );
 };
 
-// Responder OPTIONS para CORS preflight
 export const action = async () => {
   return new Response(null, {
     status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-    },
+    headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS" },
   });
 };
