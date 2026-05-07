@@ -233,7 +233,7 @@
     }
 
     function init() {
-      fetch("/apps/bundlero?shop=" + encodeURIComponent(shop) + (productId ? "&productId=" + encodeURIComponent(productId) : ""))
+      fetch("/apps/comboloco?shop=" + encodeURIComponent(shop) + (productId ? "&productId=" + encodeURIComponent(productId) : ""))
         .then(function(r) { return r.json(); })
         .then(function(d) { if (d && d.bundle) render(d.bundle); })
         .catch(function() {});

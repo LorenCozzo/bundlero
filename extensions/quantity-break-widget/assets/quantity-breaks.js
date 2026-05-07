@@ -170,8 +170,8 @@
   }
 
   function init() {
-    // /apps/bundlero es el App Proxy — Shopify lo redirige al servidor sin necesitar la URL
-    var url = "/apps/bundlero"
+    // /apps/comboloco es el App Proxy — Shopify lo redirige al servidor sin necesitar la URL
+    var url = "/apps/comboloco"
       + "?shop=" + encodeURIComponent(shop)
       + (productId ? "&productId=" + encodeURIComponent(productId) : "");
 

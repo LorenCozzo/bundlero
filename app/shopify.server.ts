@@ -42,13 +42,13 @@ async function ensureAutomaticDiscount(admin: any) {
       }
     `);
     const fnData = await fnRes.json();
-    console.log("[bundlero] shopifyFunctions:", JSON.stringify(fnData?.data?.shopifyFunctions?.nodes));
+    console.log("[comboloco] shopifyFunctions:", JSON.stringify(fnData?.data?.shopifyFunctions?.nodes));
     const fn = fnData?.data?.shopifyFunctions?.nodes?.find(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (n: any) => n.apiType === "product_discounts" && n.title === "quantity-break-function"
     );
     if (!fn) {
-      console.log("[bundlero] Function not found — deploy the app first");
+      console.log("[comboloco] Function not found — deploy the app first");
       return { error: "function_not_found" };
     }
 
@@ -56,7 +56,7 @@ async function ensureAutomaticDiscount(admin: any) {
     const existingRes = await admin.graphql(`
       #graphql
       query GetDiscounts {
-        discountNodes(first: 25, query: "title:Bundlero Quantity Breaks") {
+        discountNodes(first: 25, query: "title:ComboLoco Quantity Breaks") {
           nodes {
             id
             discount {
@@ -69,7 +69,7 @@ async function ensureAutomaticDiscount(admin: any) {
     const existingData = await existingRes.json();
     const alreadyExists = (existingData?.data?.discountNodes?.nodes?.length ?? 0) > 0;
     if (alreadyExists) {
-      console.log("[bundlero] Automatic discount already exists");
+      console.log("[comboloco] Automatic discount already exists");
       return { ok: true };
     }
 
@@ -85,7 +85,7 @@ async function ensureAutomaticDiscount(admin: any) {
     `, {
       variables: {
         discount: {
-          title: "Bundlero Quantity Breaks",
+          title: "ComboLoco Quantity Breaks",
           functionId: fn.id,
           startsAt: new Date().toISOString(),
           combinesWith: {
@@ -97,10 +97,10 @@ async function ensureAutomaticDiscount(admin: any) {
       },
     });
     const createData = await createRes.json();
-    console.log("[bundlero] discountAutomaticAppCreate:", JSON.stringify(createData?.data?.discountAutomaticAppCreate));
+    console.log("[comboloco] discountAutomaticAppCreate:", JSON.stringify(createData?.data?.discountAutomaticAppCreate));
     return createData?.data?.discountAutomaticAppCreate;
   } catch (e) {
-    console.error("[bundlero] ensureAutomaticDiscount error:", e);
+    console.error("[comboloco] ensureAutomaticDiscount error:", e);
     throw e;
   }
 }

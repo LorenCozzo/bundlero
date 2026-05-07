@@ -1,5 +1,5 @@
 {
-  "name": "bundlero",
+  "name": "comboloco",
   "private": true,
   "scripts": {
     "build": "react-router build",

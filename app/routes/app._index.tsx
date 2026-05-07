@@ -11,7 +11,7 @@ import db from "../db.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   await ensureAutomaticDiscount(admin).catch((e) =>
-    console.error("[bundlero] loader discount error:", e),
+    console.error("[comboloco] loader discount error:", e),
   );
   const bundles = await db.quantityBundle.findMany({
     where: { shop: session.shop },
