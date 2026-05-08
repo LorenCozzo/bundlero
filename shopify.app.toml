@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "9d489874d40162f0b8b3fb82d574188f"
+client_id = "a073e0d830f9fbd3c666b2efcff5e085"
 name = "comboloco"
 application_url = "https://comboloco.vercel.app"
 embedded = true
