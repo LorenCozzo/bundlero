@@ -2,7 +2,7 @@
 
 client_id = "9d489874d40162f0b8b3fb82d574188f"
 name = "comboloco"
-application_url = "https://example.com"
+application_url = "https://comboloco.vercel.app"
 embedded = true
 
 [access_scopes]
@@ -29,12 +29,13 @@ api_version = "2026-07"
   topics = [ "app/scopes_update" ]
 
 [app_proxy]
-url = "https://example.com/api/widget"
+url = "https://comboloco.vercel.app/api/widget"
 subpath = "comboloco"
 prefix = "apps"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://comboloco.vercel.app/api/auth" ]
 
 [build]
+include_config_on_deploy = true
 automatically_update_urls_on_dev = true
