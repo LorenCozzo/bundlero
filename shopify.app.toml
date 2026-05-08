@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "9d489874d40162f0b8b3fb82d574188f"
+client_id = "e350376dfb443c1b2fb34723c53562a9"
 name = "comboloco"
 application_url = "https://comboloco.vercel.app"
 embedded = true
@@ -37,5 +37,4 @@ prefix = "apps"
 redirect_urls = [ "https://comboloco.vercel.app/api/auth" ]
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
